@@ -1,0 +1,34 @@
+version: "3.8"
+services:
+  api:
+    build:
+      context: .
+      target: final
+    container_name: api
+    env_file:
+      - .api.env
+    ports:
+      - "9000:80"
+  api-dapr:
+    image: daprio/daprd:edge
+    container_name: api-dapr
+    restart: always
+    command: [
+      "./daprd",
+      "--app-id", "$DAPR_APP_ID",
+      "--dapr-grpc-port", "$DAPR_GRPC_PORT",
+      "--app-protocol", "$DAPR_PROTOCOL",
+      "--placement-host-address", "placement:$DAPR_PLACEMENT_PORT",
+      "--resources-path", "./components"
+    ]
+    volumes:
+      - ./components/statestore.yaml:/components/statestore.yaml
+    depends_on:
+      api:
+        condition: service_started
+    network_mode: "service:api"
+  redis:
+    image: redis:6
+    container_name: redis
+    ports:
+      - "6379:6379"
